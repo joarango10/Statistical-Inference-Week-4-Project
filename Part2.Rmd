@@ -1,0 +1,121 @@
+---
+title: "Part 2 ToothGrowth data"
+author: "Joaquin Arango"
+date: "12/24/2020"
+output: pdf_document
+---
+
+Part 2: Load ToothGrowth data and perform basic exploratory analysis, and provide basic statistics
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+#Load packages
+library(datasets)
+library(dplyr)
+library(ggplot2)
+library(ggthemes)
+data("ToothGrowth")
+
+#Load data and convert to tbl format
+
+ToothGrowth <- tbl_df(ToothGrowth)
+
+```
+Review structure of dataset and summarize
+
+```{r}
+#Sructure of the dataframe
+ToothGrowth %>% str()
+#summary
+ToothGrowth %>% summary()
+```
+The dataset has 60 observations and 3 variables
+
+len: tooth length, numeric variable 
+supp: supplement type (VC: vitamin C or OJ: Orange Juice), factor variable
+dose: dose(in milligrams), numeric variable
+
+```{r}
+# Unique values in the dose vector
+ToothGrowth %>% select(dose) %>% unique()
+```
+
+Dose contians just 3 unique values: 0.5, 1, 2. Convert this ino a factor varible with three levels
+
+```{r}
+# covert to factor
+ToothGrowth <- ToothGrowth %>% mutate(dose = as.factor(dose))
+```
+
+Now we plot
+
+
+```{r, fig.height=3}
+ToothGrowth %>%
+  ggplot(aes(x=dose, y=len, fill=supp)) +
+  geom_boxplot() +
+  facet_grid(. ~supp) +
+  scale_fill_brewer(palette="Set1") +
+  theme_bw() +
+  ggtitle("Teeth Length vs Dose level \nby Supplement type") +
+  labs(x="dose(mg)", y="teeth length") +
+  guides(fill=guide_legend(title = "Supplement type"))
+```
+
+This plot shows the relationship between teeth length and dose level for each supplement type. There is a positive relationship for both supplement types. As the amount of supplement type increases, so does teeth length.
+
+Now we want to further compare teeth growth by supplement type and dose levels. We will use the t-test. In our dataset we have two supp: OJ and VC and three levels for dose: 0.5, 1, 2. Thus we'll have to run one hypothesis test for factor _supp_ and one for each possible pair of the 3 levels in the factor _dose_, so we will run a total of 4 tests. 
+
+Test 1
+dose = 0.5 and dose = 1
+
+```{r}
+# Extract the len and dose vectors from the df ToothGrowth
+len_a <- ToothGrowth %>% filter(dose %in% c(0.5,1)) %>% select(len) %>% unlist()
+dose_a <- ToothGrowth %>% filter(dose %in% c(0.5,1)) %>% select(dose) %>% unlist() 
+(Test.a <- t.test(len_a~dose_a, paired=FALSE))
+```
+
+Test 2 
+dose = 0.5 and dose = 2
+
+```{r}
+#Exract the len and dose vectors from the df ToothGrowth
+len_b <- ToothGrowth %>% filter(dose %in% c(0.5,2)) %>% select(len) %>% unlist()
+dose_b <- ToothGrowth %>% filter(dose %in% c(0.5,2)) %>% select(dose) %>% unlist()
+#Test
+(Test.b <- t.test(len_b~dose_b, paired = FALSE))
+```
+
+Test 3 
+dose = 1 and dose = 2
+
+```{r}
+#Exract the len and dose vectors from the df ToothGrowth
+len_c <- ToothGrowth %>% filter(dose %in% c(1,2)) %>% select(len) %>% unlist()
+dose_c <- ToothGrowth %>% filter(dose %in% c(1,2)) %>% select(dose) %>% unlist()
+#Test
+(Test.c <- t.test(len_c~dose_c, paired = FALSE))
+```
+
+We went through all the combinations of levels from the factor variable dose and in all cases the p-value is lower than the default significance level 0.05. Thus, we reject Ho. There appears to be a positive relationship between dose level and teeth length
+
+Test by supplement
+
+```{r}
+#Exract the len and dose vectors from the df ToothGrowth
+len <- ToothGrowth %>% select(len) %>% unlist()
+supp <- ToothGrowth %>% select(supp) %>% unlist()
+t.test(len~supp, paired = FALSE)
+
+```
+
+We can see that the p-value of the test is 0.06. Since the p-value is greater than 0.05 and the confidence interval of the test contains zero, we can reject the null hypothesis and say that supplement types don't seem to have any impact on teeth growth. There is no significant statistical difference between them.
+
+
+Conclusions
+
+There is a statistically significant difference between teeth length and dose levels across both delivery methods, as the dose increases so does teeth length.
+
+There doesn't seem to be a statistically significant difference between delivery methods, with OJ apparently more effective at dose levels 0.5 and 1, and VC slightly more effective at dose level 2.
+
